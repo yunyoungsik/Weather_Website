@@ -22,8 +22,8 @@
         </div>
         <div class="weatherData">
           <div v-for="Temporary in TemporaryData" :key="Temporary.title" class="detailData">
-            <p>{{Temporary.title}}</p>
-            <p>{{Temporary.value}}</p>
+            <p>{{ Temporary.title }}</p>
+            <p>{{ Temporary.value }}</p>
           </div>
         </div>
       </div>
@@ -59,6 +59,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
@@ -76,14 +78,31 @@ export default {
           title: '풍향',
           value: 'WS',
         },
-      ]
-    }
+      ],
+    };
+  },
+  created() {
+    // 초기데이터 선언을 위한 코드 작성
+    // https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
+    const API_KEY = "11425be0d0b12e94cacae4113da0aaa6";
+    let lat = 36.5683;
+    let lon = 126.9778;
+
+    // get() 메서드를 통해서 우리가 필요로하는 API 데이터를 호출한다.
+    axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
+    .then(res => {
+      console.log(res)
+    })
+    .catch(err => {
+      console.log(err);
+    }) 
   }
-}
+};
 </script>
 
 <style lang="scss" scoped>
 @import '~/scss/main.scss';
+
 .leftContainer {
   width: 324px;
   height: 700px;
@@ -224,6 +243,116 @@ export default {
             font-family: 'Poppins', sans-serif;
           }
         }
+      }
+    }
+  }
+
+  #todayWeather {
+    width: 100%;
+    height: 17.5%;
+
+    .textBox {
+      @include center-sb;
+      width: calc(100% - 70px);
+      height: 35%;
+      padding: 0 35px;
+      font-family: 'Noto Sans KR', sans-serif;
+
+      p {
+        font-weight: 400;
+        font-size: 0.8rem;
+        color: white;
+        text-align: center;
+
+        &:last-child {
+          font-weight: 400;
+          font-size: 0.8rem;
+          color: #0085ff;
+          cursor: pointer;
+          margin-bottom: 2px;
+        }
+      }
+    }
+
+    .timelyWeatherBox {
+      display: flex;
+      align-items: center;
+      width: calc(100% -70px);
+      height: 65%;
+      padding: 0 30px;
+
+      .timelyWeather {
+        display: flex;
+        width: 126px;
+        height: 70px;
+        background-color: #0989ff;
+        border-radius: 20px;
+
+        .icon {
+          @include center;
+          width: 45%;
+          height: 100%;
+
+          img {
+            width: 100%;
+          }
+        }
+
+        .data {
+          @include c-center-se;
+          width: 55%;
+          height: 100%;
+
+          p {
+            color: whitesmoke;
+            font-family: 'Poppins', sans-serif;
+            text-align: center;
+
+            &.time {
+              font-size: 0.8rem;
+              font-weight: 200;
+              margin-top: 7.5px;
+            }
+
+            &.currentDegree {
+              font-size: 1.2rem;
+              margin-top: 7.5px;
+            }
+          }
+
+          div {
+            @include center;
+            width: 100%;
+            height: 33.33%;
+
+            img {
+              height: 55%;
+            }
+
+            .fall {
+              font-size: 0.9re;
+              margin-top: 1.5px;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  nav {
+    @include center-sb;
+    width: calc(100% - 100px);
+    height: 10%;
+    padding: 0 50px;
+
+    i {
+      color: rgb(255, 255, 255);
+      font-size: 1.15rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #799ed6;
       }
     }
   }
