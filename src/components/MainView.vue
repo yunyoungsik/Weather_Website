@@ -2,8 +2,8 @@
   <div class="leftContainer">
     <div id="cityNameBox">
       <div class="cityName">
-        <p>San Fransisco</p>
-        <p>Jan 28</p>
+        <p>{{ cityName }}</p>
+        <p>{{ currentTime }}</p>
       </div>
     </div>
     <div id="contentsBox">
@@ -15,15 +15,15 @@
       </div>
       <div class="weatherBox">
         <div class="weatherDegree">
-          <p>10&deg;</p>
+          <p>{{ Math.round(currentTemp) }}&deg;</p>
         </div>
         <div class="weatherIcon">
           <img src="~/assets/images/01d.png" alt="MainLogo" />
         </div>
         <div class="weatherData">
-          <div v-for="Temporary in TemporaryData" :key="Temporary.title" class="detailData">
-            <p>{{ Temporary.title }}</p>
-            <p>{{ Temporary.value }}</p>
+          <div v-for="temporary in temporaryData" :key="temporary.title" class="detailData">
+            <p>{{ temporary.title }}</p>
+            <p>{{ temporary.value }}</p>
           </div>
         </div>
       </div>
@@ -34,16 +34,16 @@
         <p>이번주 날씨 보기</p>
       </div>
       <div class="timelyWeatherBox">
-        <div class="timelyWeather">
+        <div class="timelyWeather" v-for="(temp, index) in arrayTemps" :key="index">
           <div class="icon">
             <img src="~/assets/images/02d.png" alt="" />
           </div>
           <div class="data">
-            <p class="time">2pm</p>
-            <p class="currentDegree">32&deg;</p>
+            <p class="time">{{ Unix_timestamp(temp.dt) }}</p>
+            <p class="currentDegree">{{ Math.round(temp.main.temp) }}&deg;</p>
             <div>
               <img src="~assets/images/drop.png" alt="" />
-              <p class="fall">15%</p>
+              <p class="fall">{{ temp.main.humidity }}%</p>
             </div>
           </div>
         </div>
@@ -60,43 +60,89 @@
 
 <script>
 import axios from 'axios';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ko';
+dayjs.locale('ko'); // global로 한국어 locale 사용
 
 export default {
   data() {
     return {
+      // 현재 시간을 나타내기 위한 Dayjs 플러그인 사용
+      currentTime: dayjs().format('YYYY. MM. DD. ddd'),
+      // 현재 시간에 따른 현재 온도 데이터
+      currentTemp: '',
+      // 상세 날씨 데이터를 받아주는 데이터 할당
+      temps: [],
+      icons: [],
+      cityName: '',
       // 임시 데이터
-      TemporaryData: [
+      temporaryData: [
         {
           title: '습도',
-          value: '88%',
+          value: '',
         },
         {
           title: '풍속',
-          value: '10m/s',
+          value: '',
         },
         {
-          title: '풍향',
-          value: 'WS',
+          title: '체감온도',
+          value: '',
         },
       ],
+      arrayTemps: [],
     };
   },
   created() {
     // 초기데이터 선언을 위한 코드 작성
     // https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
-    const API_KEY = "11425be0d0b12e94cacae4113da0aaa6";
-    let lat = 36.5683;
+    const API_KEY = '11425be0d0b12e94cacae4113da0aaa6';
+    let lat = 37.5683;
     let lon = 126.9778;
 
     // get() 메서드를 통해서 우리가 필요로하는 API 데이터를 호출한다.
-    axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}`)
-    .then(res => {
-      console.log(res)
-    })
-    .catch(err => {
-      console.log(err);
-    }) 
-  }
+    axios
+      .get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
+      .then((res) => {
+        // console.log(res);
+        let initialWeatherData = res.data;
+
+        this.cityName = initialWeatherData.name;
+        this.currentTemp = initialWeatherData.main.temp; // 현재 시간에 따른 현재 온도
+        this.temporaryData[0].value = initialWeatherData.main.humidity + '%'; // 습도
+        this.temporaryData[1].value = initialWeatherData.wind.speed + 'm/s'; // 풍속
+        this.temporaryData[2].value = Math.round(initialWeatherData.main.feels_like) + '도'; // 체감온도
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+
+    axios
+      .get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
+      .then((res) => {
+        // console.log(res);
+
+        // 5일간의 3시간단위 날씨정보
+        // this.arrayTemps = res.data.list;
+
+        // 24시간 이내의 데이터만 활용할 것이기 때문에 for문을 활용
+        for (let i = 0; i < 24; i++) {
+          this.arrayTemps[i] = res.data.list[i];
+        }
+        // console.log(this.arrayTemps);
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  },
+  methods: {
+    // 타임스탬프로 변환
+    Unix_timestamp(dt) {
+      let date = new Date(dt * 1000);
+      let hour = '0' + date.getHours();
+      return hour.substr(-2) + '시';
+    },
+  },
 };
 </script>
 
@@ -273,20 +319,31 @@ export default {
         }
       }
     }
-
     .timelyWeatherBox {
       display: flex;
       align-items: center;
       width: calc(100% -70px);
       height: 65%;
       padding: 0 30px;
+      overflow-x: scroll;
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
+      &::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Opera*/
+      }
 
       .timelyWeather {
         display: flex;
         width: 126px;
+        min-width: 126px;
         height: 70px;
         background-color: #0989ff;
         border-radius: 20px;
+        margin-right: 15px;
+
+        &:first-child {
+          margin-left: 0;
+        }
 
         .icon {
           @include center;

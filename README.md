@@ -5,4 +5,6 @@
 ```
 npx degit SON7AE/vue3_webpack_template#eslint 프로젝트이름
 npm install vue-router@4
+npm install axios
+npm install dayjs
 ```

@@ -2,8 +2,8 @@
   <div class="rightContainer">
     <div id="cityNameBox">
       <div class="cityName">
-        <p>San Fransisco</p>
-        <p>Jan 28</p>
+        <p>{{ cityName }}</p>
+        <p>{{ currentTime }}</p>
       </div>
     </div>
     <div id="contentsBox">
@@ -15,25 +15,27 @@
       </div>
       <div class="weatherBox">
         <div class="airCondition">
-          <p>매우 추움</p>
+          <p>{{ felling }}</p>
         </div>
         <div class="detail">
           <div class="title">
             <p>Detail Tenperatures</p>
           </div>
-          <div class="data">
+          <div class="data" v-for="(detailData, index) in subWeatherData" :key="index">
             <div class="dataName">
               <p></p>
-              <p></p>
+              <p>{{ detailData.name }}</p>
             </div>
             <div class="dataValue">
-              <p><span></span> &deg;</p>
+              <p>{{ detailData.value }}<span></span></p>
             </div>
           </div>
         </div>
       </div>
     </div>
+
     <Map />
+
     <nav>
       <i class="fas fa-home"></i>
       <i class="fas fa-search-location"></i>
@@ -45,10 +47,82 @@
 
 <script>
 import Map from '~/components/Map.vue';
+import { ref } from 'vue';
+import dayjs from 'dayjs';
+import 'dayjs/locale/ko';
+import axios from 'axios';
+dayjs.locale('ko'); // global로 한국어 locale 사용
 
 export default {
   components: {
     Map,
+  },
+  // Vue3 CompositionAPI 사용
+  setup() {
+    // 화면에 보여질 데이터
+    let currentTime = dayjs().format('YYYY. MM. DD. ddd'); // 현재 시간을 보여주는 데이터
+    let cityName = ref(''); // 도시 이름을 나타내는 데이터
+    let felling = ref(''); // 현재 온도에 대한 체감을 나타내는 데이터
+    let subWeatherData = ref([]);
+
+    // OpenWeatherAPI 호출 함수
+    const fetchOpenWeatherApi = async () => {
+      // API 호출을 위한 필수 데이터
+      const API_KEY = '11425be0d0b12e94cacae4113da0aaa6';
+      let lat = 37.5683;
+      let lon = 126.9778;
+
+      // 타임스탬프로 변환
+      const Unix_timestamp = (dt) => {
+        let date = new Date(dt * 1000);
+        let hour = '0' + date.getHours();
+        return hour.substr(-2) + '시';
+      };
+
+      try {
+        const res = await axios.get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`);
+        console.log(res);
+
+        let isInitialData = res.data; // 초기데이터
+        let isInitialCityName = res.data.name; // 초기 도시이름 데이터
+        let isFeelLikeTemp = isInitialData.main.feels_like; // 초기 체감온도 데이터
+        let isTimeOfSunrise = isInitialData.sys.sunrise; // 일출시간 데이터
+        let isTimeOfSunSet = isInitialData.sys.sunset; // 일몰시간 데이터
+        let isLineOfSight = isInitialData.visibility; // 가시거리 데이터
+
+        if (isFeelLikeTemp > 30) felling.value = '매우 더움';
+        if (isFeelLikeTemp < 30) felling.value = '더움';
+        if (isFeelLikeTemp < 25) felling.value = '보통';
+        if (isFeelLikeTemp < 20) felling.value = '선선함';
+        if (isFeelLikeTemp < 15) felling.value = '쌀쌀함';
+        if (isFeelLikeTemp < 10) felling.value = '추움';
+        if (isFeelLikeTemp < 0) felling.value = '매우 추움';
+
+        // 가공할 or 가공한 데이터를 가지고 새로운 배열을 생성
+        // 우리가 새로운 배열을 만들어주는 이유는 template 부분에서 v-for를 좀 더 편하게 쓰기 위해서
+        let isProcessedData = [
+          { name: '일출시간', value: Unix_timestamp(isTimeOfSunrise) },
+          { name: '일몰시간', value: Unix_timestamp(isTimeOfSunSet) },
+          { name: '가시거리', value: isLineOfSight.toString().replace(/\B(?<!\.\d*)(?=(\d{3})+(?!\d))/g, ',') + 'M' },
+        ];
+
+        // Composition API에서 AJAX 요청과 데이터 변경을 하려면 데이터.value로 접금해야 한다.
+        cityName.value = isInitialCityName;
+        subWeatherData.value = isProcessedData;
+      } catch (err) {
+        console.log(err);
+      }
+    };
+
+    // 함수호출
+    fetchOpenWeatherApi();
+
+    return {
+      currentTime,
+      cityName,
+      felling,
+      subWeatherData,
+    };
   },
 };
 </script>
