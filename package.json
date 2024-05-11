@@ -43,7 +43,8 @@
     "axios": "^1.6.8",
     "dayjs": "^1.11.11",
     "vue": "^3.2.14",
-    "vue-router": "^4.3.2"
+    "vue-router": "^4.3.2",
+    "vuex": "^4.0.2"
   },
   "eslintConfig": {
     "globals": {

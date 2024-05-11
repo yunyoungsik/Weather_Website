@@ -5,6 +5,8 @@
 </template>
 
 <script>
+import MapPositions from "~/assets/map-positions.json";
+
 export default {
   data() {
     return {};
@@ -29,19 +31,33 @@ export default {
         };
 
       var map = new kakao.maps.Map(mapContainer, mapOption);
-      var position = [
-        {
-          latlng: new kakao.maps.LatLng(37.5683, 126.9778),
-        },
-      ];
+      const positions = MapPositions.map((pos) => ({
+        latlng: new kakao.maps.LatLng(...pos.latlng),
+        cityName: pos.cityName,
+      }))
+
+      // var position = [
+      //   {
+      //     latlng: new kakao.maps.LatLng(37.5683, 126.9778),
+      //   },
+      // ];
 
       // 마커를 생성합니다.
-      position.forEach(function (pos) {
-        var marker = new kakao.maps.Marker({
+      positions.forEach((pos) => {
+        const marker = new kakao.maps.Marker({
           position: pos.latlng, // 마커의 위치
         });
         // 마커가 지도 위에 표시 되도록 설정합니다.
-        marker.setMap(map);
+        marker.setMap(map);   
+
+        kakao.maps.event.addListener(marker, 'click', () => {
+          // 클릭한 위도, 경도 정보를 가져옵니다
+          // watch로 따로 빼지 않고, 직접 할당
+          // console.log(marker.getPosition());
+          this.$store.commit('openWeatherApi/SET_CITYNAME', pos.cityName);
+          this.$store.commit('openWeatherApi/SET_LATLON', marker.getPosition());
+          this.$store.dispatch('openWeatherApi/FETCH_OPENWEATHER_API');
+        });
       });
     },
   },

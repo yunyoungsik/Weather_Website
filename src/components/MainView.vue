@@ -18,7 +18,8 @@
           <p>{{ Math.round(currentTemp) }}&deg;</p>
         </div>
         <div class="weatherIcon">
-          <img src="~/assets/images/01d.png" alt="MainLogo" />
+          <!-- <img :src="require(`~/assets/images/${currentIcon}.png`)" alt="MainLogo" /> -->
+          <img src="~/assets/images/04n.png" alt="" />
         </div>
         <div class="weatherData">
           <div v-for="temporary in temporaryData" :key="temporary.title" class="detailData">
@@ -36,7 +37,7 @@
       <div class="timelyWeatherBox">
         <div class="timelyWeather" v-for="(temp, index) in arrayTemps" :key="index">
           <div class="icon">
-            <img src="~/assets/images/02d.png" alt="" />
+            <img :src="images[index]" alt="" />
           </div>
           <div class="data">
             <p class="time">{{ Unix_timestamp(temp.dt) }}</p>
@@ -59,7 +60,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+// import axios from 'axios';
 import dayjs from 'dayjs';
 import 'dayjs/locale/ko';
 dayjs.locale('ko'); // global로 한국어 locale 사용
@@ -69,78 +70,110 @@ export default {
     return {
       // 현재 시간을 나타내기 위한 Dayjs 플러그인 사용
       currentTime: dayjs().format('YYYY. MM. DD. ddd'),
-      // 현재 시간에 따른 현재 온도 데이터
-      currentTemp: '',
-      // 상세 날씨 데이터를 받아주는 데이터 할당
-      temps: [],
-      icons: [],
-      cityName: '',
-      // 임시 데이터
-      temporaryData: [
+    };
+  },
+  async created() {
+    // 초기데이터 선언을 위한 코드 작성
+    // Vuex Store의 Mutations를 호출할 때는 commit() 메서드를 사용한다.
+    // Vuex Store의 Actions를 호출할 때는 dispatch() 메서드를 사용한다.
+    await this.$store.dispatch('openWeatherApi/FETCH_OPENWEATHER_API'); // Vuex Store에 선언된 api 호출 완료
+    const { currentTemp, currentHumidity, currentWindSpeed, currentFeelsLike } = this.$store.state.openWeatherApi.currentWeather;
+
+    this.currentTemp = currentTemp;
+    this.temporaryData[0].value = currentHumidity + '%';
+    this.temporaryData[1].value = currentWindSpeed + 'm/s';
+    this.temporaryData[2].value = Math.round(currentFeelsLike) + '도';
+    this.arrayTemps = this.$store.state.openWeatherApi.hourlyWeather;
+    this.images = this.$store.state.openWeatherApi.imagePath;
+    // this.arrayIcons = this.$store.state.openWeatherApi.imagePath;
+  },
+  computed: {
+    // 마커를 선택했을 때, 레이아웃에 보여지는 도시이름
+    cityName() {
+      return this.$store.state.openWeatherApi.cityName;
+    },
+    currentIcon() {
+      return this.$store.state.openWeatherApi.currentWeather.currentIcon;
+    },
+    // 현재 시간에 따른 현재온도데이터
+    currentTemp() {
+      const { currentTemp } = this.$store.state.openWeatherApi.currentWeather;
+      return currentTemp;
+    },
+    arrayTemps() {
+      return this.$store.state.openWeatherApi.hourlyWeather;
+    },
+    temporaryData() {
+      const { currentHumidity, currentWindSpeed, currentFeelsLike } = this.$store.state.openWeatherApi.currentWeather;
+
+      return [
         {
           title: '습도',
-          value: '',
+          value: currentHumidity + '%',
         },
         {
           title: '풍속',
-          value: '',
+          value: currentWindSpeed + 'm/s',
         },
         {
           title: '체감온도',
-          value: '',
+          value: currentFeelsLike + '도',
         },
-      ],
-      arrayTemps: [],
-    };
+      ];
+    },
+    // 시간별 날씨 데이터에 따른 아이콘 이미지
+    images() {
+      return this.$store.state.openWeatherApi.images;
+    },
   },
-  created() {
-    // 초기데이터 선언을 위한 코드 작성
-    // https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
-    const API_KEY = '11425be0d0b12e94cacae4113da0aaa6';
-    let lat = 37.5683;
-    let lon = 126.9778;
+  // created() {
+  //   // 초기데이터 선언을 위한 코드 작성
+  //   // https://api.openweathermap.org/data/2.5/weather?lat={lat}&lon={lon}&appid={API key}
+  //   const API_KEY = '11425be0d0b12e94cacae4113da0aaa6';
+  //   let lat = 37.5683;
+  //   let lon = 126.9778;
 
-    // get() 메서드를 통해서 우리가 필요로하는 API 데이터를 호출한다.
-    axios
-      .get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
-      .then((res) => {
-        // console.log(res);
-        let initialWeatherData = res.data;
+  //   // get() 메서드를 통해서 우리가 필요로하는 API 데이터를 호출한다.
+  //   axios
+  //     .get(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
+  //     .then((res) => {
+  //       // console.log(res);
+  //       let initialWeatherData = res.data;
 
-        this.cityName = initialWeatherData.name;
-        this.currentTemp = initialWeatherData.main.temp; // 현재 시간에 따른 현재 온도
-        this.temporaryData[0].value = initialWeatherData.main.humidity + '%'; // 습도
-        this.temporaryData[1].value = initialWeatherData.wind.speed + 'm/s'; // 풍속
-        this.temporaryData[2].value = Math.round(initialWeatherData.main.feels_like) + '도'; // 체감온도
-      })
-      .catch((err) => {
-        console.log(err);
-      });
+  //       this.cityName = initialWeatherData.name;
+  //       this.currentTemp = initialWeatherData.main.temp; // 현재 시간에 따른 현재 온도
+  //       this.temporaryData[0].value = initialWeatherData.main.humidity + '%'; // 습도
+  //       this.temporaryData[1].value = initialWeatherData.wind.speed + 'm/s'; // 풍속
+  //       this.temporaryData[2].value = Math.round(initialWeatherData.main.feels_like) + '도'; // 체감온도
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
 
-    axios
-      .get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
-      .then((res) => {
-        // console.log(res);
+  //   axios
+  //     .get(`https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
+  //     .then((res) => {
+  //       console.log(res);
 
-        // 5일간의 3시간단위 날씨정보
-        // this.arrayTemps = res.data.list;
+  //       // 5일간의 3시간단위 날씨정보
+  //       // this.arrayTemps = res.data.list;
 
-        // 24시간 이내의 데이터만 활용할 것이기 때문에 for문을 활용
-        for (let i = 0; i < 24; i++) {
-          this.arrayTemps[i] = res.data.list[i];
-        }
-        // console.log(this.arrayTemps);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  },
+  //       // 24시간 이내의 데이터만 활용할 것이기 때문에 for문을 활용
+  //       for (let i = 0; i < 24; i++) {
+  //         this.arrayTemps[i] = res.data.list[i];
+  //       }
+  //       // console.log(this.arrayTemps);
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     });
+  // },
   methods: {
     // 타임스탬프로 변환
     Unix_timestamp(dt) {
       let date = new Date(dt * 1000);
-      let hour = '0' + date.getHours();
-      return hour.substr(-2) + '시';
+      let hour = date.getHours().toString().padStart(2, '0');
+      return hour.substring(-2) + '시';
     },
   },
 };
@@ -247,7 +280,6 @@ export default {
       height: 60%;
 
       img {
-        width: 168px;
         height: 160px;
       }
     }
